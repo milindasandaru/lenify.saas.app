@@ -15,16 +15,16 @@ const Page = () => {
           topic = "Nural Network of the Brain"
           subject = "Science"
           duration = {45}
-          color = "ACACAC"
+          color = "#FFFFFF"
 
         />
         <CompanionCard 
           id = "cd124"
           name = "Countsy the number wizard"
           topic = "Derivatives and Intergral"
-          subject = "Science"
+          subject = "Mathematics"
           duration = {30}
-          color = "ADADAD"
+          color = "#FFFFFF"
         />
         <CompanionCard 
           id = "cd125"
@@ -32,7 +32,7 @@ const Page = () => {
           topic = "Language"
           subject = "English Literature"
           duration = {30}
-          color = "AEAEAE"
+          color = "#FFFFFF"
         />
       </section>
 

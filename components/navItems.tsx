@@ -17,7 +17,7 @@ const navItems = () => {
     return (
         <nav className='flex items-center gap-4'>
             {NavItems.map(({ label, link }) => (
-                <Link href={link} key={label} className={`cursor-pointer hover:text-gray-500 ${pathname === link ? 'text-gray-500 font-semibold' : ''}`}  >
+                <Link href={link} key={label} className={`cursor-pointer hover:text-gray-600 ${pathname === link ? 'text-black font-semibold' : ''}`}  >
                     {label}
                 </Link>
             ))}
