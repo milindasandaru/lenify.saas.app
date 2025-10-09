@@ -7,7 +7,7 @@ const NewCompanion = () => {
       <article>
         <h1>Companion Builder</h1>
 
-        <CompanionForm/>
+        <div className="p-4"><CompanionForm/></div>
       </article>
     </main>
   )
