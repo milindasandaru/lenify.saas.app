@@ -1,8 +1,8 @@
 'use client';
 
-import React, { use } from 'react'
+import React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/dist/client/components/navigation';
+import { usePathname } from 'next/navigation';
 
 const NavItems = [
     { label: 'Home', link: '/' },
