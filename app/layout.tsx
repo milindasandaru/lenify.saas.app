@@ -31,15 +31,6 @@ export default function RootLayout({
       <html lang="en">
         <body className={`${bricolage.variable} antialiased`}>
           <Navbar />
-          <header className="flex gap-2 p-2">
-            <SignedOut>
-              <SignInButton />
-              <SignUpButton />
-            </SignedOut>
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
-          </header>
           {children}
         </body>
       </html>
