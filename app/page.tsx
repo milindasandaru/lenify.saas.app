@@ -7,7 +7,7 @@ import { recentSessions } from '@/constants'
 const Page = () => {
   return (
     <main className="p-4">
-      <h1 className='text-2xl underline'>Popular Companions</h1>
+      <h1 className='text-2xl'>Dashboard</h1>
 
       <section className="home-section">
         <CompanionCard 
