@@ -9,6 +9,7 @@ import {
     TableRow
 } from '@/components/ui/table'
 import Link from 'next/dist/client/link';
+import { METHODS } from 'http';
 
 interface CompanionCardProps {
     title: string;
@@ -24,10 +25,9 @@ const companionList = ({ title, companions, className }: CompanionCardProps) => 
             <Table className='mt-4'>
                 <TableHeader className='bg-gray-200'>
                     <TableRow className='text-left'>
-                        <TableHead className='text-lg w-2/3'>Invoice</TableHead>
-                        <TableHead className='text-lg'>Status</TableHead>
-                        <TableHead className='text-lg'>Method</TableHead>
-                        <TableHead className='text-right text-lg'>Amount</TableHead>
+                        <TableHead className='text-lg w-2/3'>Lessons</TableHead>
+                        <TableHead className='text-lg'>Subject</TableHead>
+                        <TableHead className='text-lg'>Duration</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -42,7 +42,6 @@ const companionList = ({ title, companions, className }: CompanionCardProps) => 
                                         <div className="flex flex-col gap-2">
                                             <p className='font-semibold text'>{name}</p>
                                             <p className='text-sm text-gray-500'>{topic}</p>
-                                            <p className='text-sm text-gray-500'>{duration} min</p>
                                         </div>
                                     </div>
                                 </Link>
@@ -51,7 +50,12 @@ const companionList = ({ title, companions, className }: CompanionCardProps) => 
                                 <div className="subject-badge w-fit max-md:hidden">
                                     {subject}
                                 </div>
-                                <div className=""></div>
+                                <div className="flex items-center justify-center rounded-lg w-fit p-2 md:hidden">
+                                    <img src={`/icons/${subject}.svg`} alt="icon" />
+                                </div>
+                            </TableCell>
+                            <TableCell className='text-sm text-gray-500'>
+                                {duration} min
                             </TableCell>
                         </TableRow>
                     )) : null}
