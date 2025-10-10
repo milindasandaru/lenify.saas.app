@@ -1,3 +1,4 @@
+"use client";
 import React from 'react'
 import Link from 'next/link'
 import Logo from '../public/images/Group 1.png'
@@ -15,10 +16,14 @@ const Navbar = () => {
             <div className="flex items-center gap-8">
                 <NavItems />
                 <div className="flex items-center gap-2">
-                  <SignedOut>
-                    <SignInButton />
-                    <SignUpButton />
-                  </SignedOut>
+                                    <SignedOut>
+                                        <SignInButton>
+                                                <button className='btn-primary rounded-4xl'>Sign In</button>
+                                        </SignInButton>
+                                        <SignUpButton>
+                                                <button className='btn-primary rounded-4xl'>Sign Up</button>
+                                        </SignUpButton>
+                                    </SignedOut>
                   <SignedIn>
                     <UserButton />
                   </SignedIn>
