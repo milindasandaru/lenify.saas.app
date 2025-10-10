@@ -16,11 +16,14 @@ const Navbar = () => {
             <div className="flex items-center gap-8">
                 <NavItems />
                 <div className="flex items-center gap-2">
-                  <SignedOut>
-                    <SignInButton>
-                        <button className='btn-signin'>Sign In</button>
-                    </SignInButton>
-                  </SignedOut>
+                                    <SignedOut>
+                                        <SignInButton>
+                                                <button className='btn-primary rounded-4xl'>Sign In</button>
+                                        </SignInButton>
+                                        <SignUpButton>
+                                                <button className='btn-primary rounded-4xl'>Sign Up</button>
+                                        </SignUpButton>
+                                    </SignedOut>
                   <SignedIn>
                     <UserButton />
                   </SignedIn>
