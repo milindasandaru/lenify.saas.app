@@ -1,6 +1,6 @@
 import CompanionForm from '@/components/companionForm'
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/dist/client/components/navigation';
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 import React from 'react'
 
 const NewCompanion = async () => { 
