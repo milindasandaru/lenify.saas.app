@@ -1,7 +1,12 @@
 'use client'
 
 import { subjects } from '@/constants'
-import { removeKeysFromUrlQuery } from '@jsmastery/utils'
+// Remove subject key from query string
+function removeSubjectFromQuery(params: string, key: string): string {
+    const url = new URLSearchParams(params);
+    url.delete(key);
+    return `?${url.toString()}`;
+}
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@radix-ui/react-select'
 import { useRouter, useSearchParams } from 'next/dist/client/components/navigation'
 import React, { useEffect } from 'react'
@@ -15,11 +20,8 @@ const SubjectFilter = () => {
 
     useEffect(() => {
         let newURL = "";
-        if (subject=="all") {
-            newURL = removeKeysFromUrlQuery({
-                params: searchParams.toString(),
-                key: 'subject'
-            });
+        if (subject === "all" || subject === "") {
+            newURL = removeSubjectFromQuery(searchParams.toString(), 'subject');
         } else {
             newURL = fromUrlQuery({
                 params: searchParams.toString(),
@@ -27,7 +29,6 @@ const SubjectFilter = () => {
                 value: subject,
             });
         }
-
         router.push(newURL);
     }, [subject]);
 
@@ -49,7 +50,9 @@ const SubjectFilter = () => {
 }
 
 export default SubjectFilter
-function fromUrlQuery(arg0: { params: string; key: string; value: string }): string {
-    throw new Error('Function not implemented.')
+function fromUrlQuery({ params, key, value }: { params: string; key: string; value: string }): string {
+    const url = new URLSearchParams(params);
+    url.set(key, value);
+    return `?${url.toString()}`;
 }
 
