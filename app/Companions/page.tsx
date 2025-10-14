@@ -2,6 +2,7 @@ import React from 'react'
 import { getAllCompanions } from '@/lib/actions/companion.action'
 import CompanionCard from '@/components/companionCard';
 import SearchInput from '@/components/searchInput';
+import SubjectFilter from '@/components/subjectFilter';
 
 const CompanionsLibrary = async ({ searchParams }: SearchParams) => {
   const filters = await searchParams;
@@ -17,7 +18,10 @@ const CompanionsLibrary = async ({ searchParams }: SearchParams) => {
       <section className='flex flex-col gap-4'>
         <div className="flex justify-between items-center gap-4 max-sm:flex-col">
           <h1>Companion Library</h1>
-          <SearchInput />
+          <div className="flex gap-2 relative z-50">
+            <SearchInput />
+            <SubjectFilter />
+          </div>
         </div>
         <div className="flex gap-4">Filters</div>
       </section>
