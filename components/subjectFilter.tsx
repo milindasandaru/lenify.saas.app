@@ -7,46 +7,55 @@ function removeSubjectFromQuery(params: string, key: string): string {
     url.delete(key);
     return `?${url.toString()}`;
 }
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@radix-ui/react-select'
-import { useRouter, useSearchParams } from 'next/dist/client/components/navigation'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect } from 'react'
 
 const SubjectFilter = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const query = searchParams.get('subject') || '';
+    // derive initial value from URL (default to 'all' when missing)
+    const initial = searchParams.get('subject') || 'all';
+    const [subject, setsubject] = React.useState(initial);
 
-    const [subject, setsubject] = React.useState(query);
-
+    // keep state in sync when user navigates back/forward or URL changes externally
     useEffect(() => {
-        let newURL = "";
-        if (subject === "all" || subject === "") {
+        const current = searchParams.get('subject') || 'all';
+        setsubject((prev) => (prev === current ? prev : current));
+    }, [searchParams]);
+
+    // update URL whenever subject changes from the UI
+    useEffect(() => {
+        let newURL = '';
+        if (subject === 'all' || subject === '') {
             newURL = removeSubjectFromQuery(searchParams.toString(), 'subject');
         } else {
             newURL = fromUrlQuery({
                 params: searchParams.toString(),
-                key: "subject",
+                key: 'subject',
                 value: subject,
             });
         }
         router.push(newURL);
     }, [subject]);
 
-  return (
-    <Select onValueChange={setsubject} value={subject}>
-        <SelectTrigger className=' border border-black rounded-lg px-2 py-1 h-fit input capitalize'>
-            <SelectValue placeholder="Select Subject" />
-        </SelectTrigger>
-        <SelectContent>
-            {subjects.map((subject) => (
-                <SelectItem key={subject} value={subject} className='capitalize'>
-                    {subject}
+    return (
+        <Select onValueChange={setsubject} value={subject}>
+            <SelectTrigger className="w-44">
+                <SelectValue placeholder="Select Subject" />
+            </SelectTrigger>
+            <SelectContent className="z-50">
+                <SelectItem key="all" value="all">
+                    All Subjects
                 </SelectItem>
-            ))}
-        </SelectContent>
-    </Select>
-
-  )
+                {subjects.map((subject) => (
+                    <SelectItem key={subject} value={subject}>
+                        {subject}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    )
 }
 
 export default SubjectFilter

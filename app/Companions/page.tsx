@@ -18,7 +18,7 @@ const CompanionsLibrary = async ({ searchParams }: SearchParams) => {
       <section className='flex flex-col gap-4'>
         <div className="flex justify-between items-center gap-4 max-sm:flex-col">
           <h1>Companion Library</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative z-50">
             <SearchInput />
             <SubjectFilter />
           </div>
