@@ -4,16 +4,31 @@ import { get } from 'http';
 import { redirect } from 'next/dist/client/components/navigation';
 import React from 'react'
 
+
+type Companion = {
+  id: string;
+  name: string;
+  subject: string;
+  topic: string;
+  duration: number;
+  bookmarked: boolean;
+};
+
 interface CompanionSessionPageProps {
-  params: Promise<{ id: string }>
+  params: { id: string }
 }
 
 // params /url/{id} -> id
 // searchParams /url?key=value&key1=value1
 
 const Companionsession = async ({ params } : CompanionSessionPageProps) => {
-  const { id } = await params;
-  const companion = await getComapnion(id);
+  const { id } = params;
+  let companion: Companion | null = null;
+  try {
+    companion = await getComapnion(id);
+  } catch (e) {
+    redirect('/companions');
+  }
   const user = await currentUser();
 
   if(!user) redirect ('/sign-in');

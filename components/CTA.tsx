@@ -10,7 +10,7 @@ const CTA = () => {
       <img src="/images/cta.png" alt="cta" width={500} height={300} />
       <button className='btn-primary'>
         <img src="/icons/plus.svg" alt="plus" width={21} height={21} />
-        <Link href="/Companions/new" className='flex items-center gap-2'>
+  <Link href="/companions/new" className='flex items-center gap-2'>
           <p>Create Your Companion</p>
         </Link>
       </button>
