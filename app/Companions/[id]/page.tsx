@@ -37,14 +37,21 @@ const Companionsession = async ({ params } : CompanionSessionPageProps) => {
   return (
     <main>
       <article className=' flex rounded-border justify-between p-6 max-md:flex-col'>
-        <div className="flex flex-col gap-4 max-w-lg">
-          <h1 className='text-4xl font-bold'>{companion.name}</h1>
-          <p className='text-lg text-gray-700'>{companion.topic}</p>
-        </div>
-        <div className="flex flex-col gap-4 max-md:w-full">
-          <button className='btn-primary w-fit max-md:w-full justify-center'>
-            Launch Lesson
-          </button>
+        <div className="flex items-center gap-2">
+          <div className="size-[72px] flex items-center justify-center rounded-lg max-md:hidden">
+            <img src={`/icons/${companion?.subject}.svg`} alt={companion?.subject} width={35} height={35} />
+          </div>
+
+          <div className="flex felx-col gap-2">
+            <div className="flex items-center gap-2">
+              <p className='font-bold text-2xl'>
+                {companion?.name}
+              </p>
+              <div className="subject-badge max-sm:hidden">
+                {companion?.subject}
+              </div>
+            </div>
+          </div>
         </div>
       </article>
     </main>
