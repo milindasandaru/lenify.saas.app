@@ -50,5 +50,10 @@ export const getComapnion = async (id:String) => {
         .from('companions')
         .select()
         .eq('id', id)
-        .single();
+
+    if(error) {
+        return console.log(error.message);
+    }
+
+    return data?.[0];
 }
