@@ -3,6 +3,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { get } from 'http';
 import { redirect } from 'next/dist/client/components/navigation';
 import React from 'react'
+import CompanionComponent from '@/components/CompanionComponent';
 
 
 type Companion = {
@@ -21,13 +22,15 @@ interface CompanionSessionPageProps {
 // params /url/{id} -> id
 // searchParams /url?key=value&key1=value1
 
-const Companionsession = async ({ params } : CompanionSessionPageProps) => {
+const Companionsession = async ({ params }: CompanionSessionPageProps) => {
   const { id } = params;
-  const { name, subject, topic, duration, bookmarked } = await getComapnion(id);
+  const companion = await getComapnion(id);
   const user = await currentUser();
 
-  if(!user) redirect ('/sign-in');
-  if(!name) redirect('/companions');
+  const { name, subject, topic, duration, bookmarked } = companion;
+
+  if (!user) redirect('/sign-in');
+  if (!name) redirect('/companions');
 
   return (
     <main>
@@ -37,7 +40,7 @@ const Companionsession = async ({ params } : CompanionSessionPageProps) => {
             <img src={`/icons/${subject}.svg`} alt={subject} width={35} height={35} />
           </div>
 
-          <div className="flex felx-col gap-2">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <p className='font-bold text-2xl'>
                 {name}
@@ -51,6 +54,12 @@ const Companionsession = async ({ params } : CompanionSessionPageProps) => {
         </div>
         <div className=" items-start text-2xl max-md:hidden">{duration} min</div>
       </article>
+      <CompanionComponent 
+      {...companion}
+      companionID={id}
+      userName={user?.firstName}
+      userImage={user?.imageUrl}
+      />
     </main>
   )
 }
