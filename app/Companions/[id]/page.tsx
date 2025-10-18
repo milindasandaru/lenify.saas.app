@@ -51,6 +51,7 @@ const Companionsession = async ({ params } : CompanionSessionPageProps) => {
                 {companion?.subject}
               </div>
             </div>
+            <p className='text-lg text-gray-700'>{companion?.topic}</p>
           </div>
         </div>
       </article>
