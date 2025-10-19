@@ -13,9 +13,10 @@ enum CallStatus {
     FINISHED = 'finished',
 }
 
-const CompanionComponent = ({ companionId, subject, topic, userName, userImage, voice }: CompanionComponentProps) => {
+const CompanionComponent = ({ companionId, name, subject, topic, userName, userImage, voice }: CompanionComponentProps) => {
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
     const [speechStatus, setSpeechStatus] = useState(false);
+    const [isMuted, setISMuted] = useState(false);
 
     // const lottieRef = React.useRef<LottieComponentProps>(null);
 
@@ -45,6 +46,14 @@ const CompanionComponent = ({ companionId, subject, topic, userName, userImage, 
         }
     }, [speechStatus, play, stop]);
 
+    const handleCall = async () => {
+
+    }
+
+    const handleDisconnect = async () => {
+
+    }
+
     useEffect(() => {
         // Logic to handle companion interaction based on props  
         const onCallStart = () => setCallStatus(CallStatus.ACTIVE);
@@ -71,6 +80,12 @@ const CompanionComponent = ({ companionId, subject, topic, userName, userImage, 
         };
     }, [companionId, subject, topic, userName, userImage, voice]);
 
+    const toggleMicrophone = () => {
+        const isMuted = vapi.isMuted();
+        vapi.setMuted(!isMuted);
+        setISMuted(!isMuted);   
+    }
+
     return (
         <section className='flex flex-col h-[70vh]'>
             <section className='flex gap-8 max:sm:flex-col'>
@@ -83,6 +98,32 @@ const CompanionComponent = ({ companionId, subject, topic, userName, userImage, 
                             {View}
                         </div>
                     </div>
+                    <p className='font-semibold text-2xl'>{name}</p>
+                </div>
+
+                <div className="user-section">
+                    <div className="user-avatar">
+                        <img src={userImage} alt={userName} width={120} height={120} />
+                        <p className='font-semibold text-lg'>
+                            {userName}
+                        </p>
+                    </div>
+                    <button className='btn-mic' onClick={toggleMicrophone}>
+                        <img src={isMuted ? "/icons/mic-off.svg" : "/icons/mic-on.svg"} alt="mic" width={24} height={24} />
+                        <p className='max-sm:hidden'>{isMuted ? "Turn on microphone" : "Turn off microphone"}</p>
+                    </button>
+                    <button className={cn('rounded-lg py-2 cursor-pointer transition-colors w-full text-white', callStatus === CallStatus.ACTIVE ? 'bg-red-600 hover:bg-red-700' : callStatus === CallStatus.CONNECTING ? 'bg-yellow-600 hover:bg-yellow-700 animate-pulse' : '')} onClick={callStatus === CallStatus.ACTIVE ? handleDisconnect : handleCall}>
+                        {callStatus === CallStatus.ACTIVE ? 'End Session'
+                         : callStatus === CallStatus.CONNECTING ? 'Connecting...' 
+                         : 'Start Session'
+                         }
+                    </button>
+                </div>
+            </section>
+
+            <section className='transcript'>
+                <div className="transcript-message no-scrollbar">
+                    Messages
                 </div>
             </section>
         </section>
