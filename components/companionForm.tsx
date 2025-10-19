@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { minLength, z } from 'zod'
+import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 
@@ -9,10 +9,8 @@ import { Button } from '@/components/ui/button'
 import {
     Form,
     FormControl,
-    FormDescription,
     FormMessage,
     FormField,
-    FormItem,
     FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -31,7 +29,7 @@ const formSchema = z.object({
     duration: z.number().min(1, { message: 'Duration is required.' }),
 })
 
-const companionForm = () => {
+const CompanionForm = () => {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -185,4 +183,4 @@ const companionForm = () => {
     )
 }
 
-export default companionForm
+export default CompanionForm
