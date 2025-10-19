@@ -5,6 +5,9 @@ import { cn } from '@/lib/utils';
 import { vapi } from '@/lib/vapi.sdk';
 import { useLottie } from 'lottie-react';
 import soundwaves from '@/constants/soundwaves.json';
+import { set } from 'zod';
+import { connect } from 'http2';
+import { Variable } from 'lucide-react';
 
 enum CallStatus {
     INACTIVE = 'inactive',
@@ -47,7 +50,17 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
     }, [speechStatus, play, stop]);
 
     const handleCall = async () => {
+        setCallStatus(CallStatus.CONNECTING);
 
+        const assistantOverrides = {
+            Variable: {
+                subject, topic
+            },
+            clientMessages: ['transcript'],
+            serverMessage: [],
+        }
+
+        // vapi.start()
     }
 
     const handleDisconnect = async () => {
