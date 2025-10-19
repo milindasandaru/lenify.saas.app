@@ -23,7 +23,7 @@ interface CompanionSessionPageProps {
 // searchParams /url?key=value&key1=value1
 
 const Companionsession = async ({ params }: CompanionSessionPageProps) => {
-  const { id } = params;
+  const { id } = await params;
   const companion = await getComapnion(id);
   const user = await currentUser();
 

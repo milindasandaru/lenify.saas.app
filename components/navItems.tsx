@@ -11,7 +11,7 @@ const NavItems = [
 
 ]
 
-const navItems = () => {
+const NavItemsComponent = () => {
     const pathname = usePathname();
 
     return (
@@ -25,4 +25,4 @@ const navItems = () => {
     )
 }
 
-export default navItems
+export default NavItemsComponent
