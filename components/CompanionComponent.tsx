@@ -101,11 +101,11 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
 
     return (
         <section className='flex flex-col h-[70vh]'>
-            <section className='flex gap-8 max:sm:flex-col'>
+            <section className='flex gap-8 max-sm:flex-col'>
                 <div className="companion-section">
                     <div className="companion-avatar">
                         <div className={cn('absolute transition-opacity duration-1000', callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE ? 'opacity-100' : 'opacity-0', callStatus === CallStatus.CONNECTING ? 'opacity-100 animate-pulse' : '')}>
-                            <img src={`/icons/${subject}.svg`} alt={subject} width={70} height={70} className='max:sm:w-fit' />
+                            <img src={`/icons/${subject}.svg`} alt={subject} width={70} height={70} className='max-sm:w-fit' />
                         </div>
                         <div className={cn('absolute transition-opacity duration-1000', callStatus === CallStatus.FINISHED || callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
                             {View}
