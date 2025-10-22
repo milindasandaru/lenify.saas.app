@@ -27,10 +27,10 @@ const Companionsession = async ({ params }: CompanionSessionPageProps) => {
 
   if (!user) redirect('/sign-in');
 
-  let companion: any = null;
+  let companion: (Companion & { voice?: string; style?: string }) | null = null;
   try {
     companion = await getComapnion(id);
-  } catch (e) {
+  } catch {
     // If companion cannot be fetched (e.g., empty DB or network), show 404 page
     return notFound();
   }
@@ -68,8 +68,8 @@ const Companionsession = async ({ params }: CompanionSessionPageProps) => {
         topic={topic}
         userName={user.firstName || 'You'}
         userImage={user.imageUrl || '/images/default-avatar.png'}
-        voice={companion.voice || 'alloy'}
-        style={companion.style || 'default'}
+        voice={companion.voice || 'female'}
+        style={companion.style || 'casual'}
       />
     </main>
   )

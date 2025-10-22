@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react'
-import { cn, configureAssistant } from '@/lib/utils';
+import { cn, configureAssistant, type AssistantWithVoice } from '@/lib/utils';
 import { vapi } from '@/lib/vapi.sdk';
 import { useLottie } from 'lottie-react';
 import soundwaves from '@/constants/soundwaves.json';
@@ -50,50 +50,64 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
     const handleCall = async () => {
         setCallStatus(CallStatus.CONNECTING);
 
-        const assistant = configureAssistant(voice, style) as any;
-        const variables = { subject, topic, style } as any;
+    const assistant: AssistantWithVoice = configureAssistant(subject, topic, voice, style);
 
         if (process.env.NODE_ENV !== 'production') {
             // Safe debug log (no secrets)
             console.log('Vapi start payload:', {
                 model: assistant?.model,
-                hasVoice: Boolean((assistant as any)?.voice),
-                variables,
+                hasVoice: Boolean('voice' in assistant && assistant.voice),
+                subject,
+                topic,
+                style,
+                origin: typeof window !== 'undefined' ? window.location.origin : 'server',
             });
         }
 
-        const extractResponseInfo = async (err: any) => {
+        // Ensure microphone permission before starting the call
+        try {
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (permErr) {
+            console.error('Microphone permission denied or unavailable:', permErr);
+            setCallStatus(CallStatus.INACTIVE);
+            return;
+        }
+
+        const extractResponseInfo = async (err: unknown) => {
             try {
-                const res: Response | undefined = err?.error;
-                let body: any = undefined;
-                if (res && typeof res.text === 'function') {
+                // Common Vapi error shape: { error: Response }
+                const maybeObj = err as { error?: Response } | undefined;
+                const res: Response | undefined = maybeObj?.error;
+                let body: unknown = undefined;
+                if (res && typeof (res as Response).text === 'function') {
                     const txt = await res.text();
                     try { body = txt ? JSON.parse(txt) : undefined; } catch { body = txt; }
                 }
-                return { status: (res as any)?.status, statusText: (res as any)?.statusText, url: (res as any)?.url, type: (res as any)?.type, body };
+                return {
+                    status: res?.status,
+                    statusText: res?.statusText,
+                    url: (res as unknown as { url?: string })?.url,
+                    type: (res as unknown as { type?: string })?.type,
+                    body,
+                };
             } catch { return {}; }
         };
 
-        // Attempt 1: recommended object signature
+        // Attempt 1: minimal assistant only (no variables)
         try {
-            await vapi.start({ assistant, variables } as any);
+            await vapi.start(assistant);
             return;
         } catch (e) {
-            console.error('Vapi start failed (assistant+variables):', await extractResponseInfo(e));
+            console.error('Vapi start failed (assistant only):', await extractResponseInfo(e));
         }
 
-        // Attempt 2: assistant only
-        try {
-            await vapi.start({ assistant } as any);
-            return;
-        } catch (e2) {
-            console.error('Vapi start failed (assistant only):', await extractResponseInfo(e2));
-        }
+        // Attempt 2 removed: SDK expects assistant directly; object wrapper isn't a valid signature.
 
         // Attempt 3: assistant without voice (if present)
         try {
-            const { voice: _omitVoice, ...assistantNoVoice } = assistant || {};
-            await vapi.start({ assistant: assistantNoVoice } as any);
+            const assistantNoVoice: AssistantWithVoice = { ...(assistant as AssistantWithVoice) };
+            delete (assistantNoVoice as Record<string, unknown>).voice;
+            await vapi.start(assistantNoVoice);
             return;
         } catch (e3) {
             console.error('Vapi start failed (assistant without voice):', await extractResponseInfo(e3));
@@ -112,19 +126,28 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
 
     useEffect(() => {
         // Logic to handle companion interaction based on props  
-        const onCallStart = () => setCallStatus(CallStatus.ACTIVE);
-        const onCallEnd = () => setCallStatus(CallStatus.FINISHED);
-        const onMessageReceive = (message: string) => { };
+        const onCallStart = () => {
+            if (process.env.NODE_ENV !== 'production') console.log('Vapi event: call-start');
+            setCallStatus(CallStatus.ACTIVE);
+        };
+        const onCallEnd = (payload?: unknown) => {
+            if (process.env.NODE_ENV !== 'production') console.log('Vapi event: call-end', payload);
+            setCallStatus(CallStatus.FINISHED);
+        };
+        const onMessageReceive = (message: string) => {
+            if (process.env.NODE_ENV !== 'production') console.log('Vapi message:', message);
+        };
         const onSpeechStart = () => setSpeechStatus(true);
         const onSpeechEnd = () => setSpeechStatus(false);
-        const onError = async (err: any) => {
+        const onError = async (err: unknown) => {
             console.error('Vapi error:', err);
             try {
-                if (err?.error && typeof err.error.json === 'function') {
-                    const details = await err.error.json();
+                const maybeObj = err as { error?: Response } | undefined;
+                if (maybeObj?.error && typeof maybeObj.error.json === 'function') {
+                    const details = await maybeObj.error.json();
                     console.error('Vapi error body:', details);
                 }
-            } catch (_) {}
+            } catch { /* noop */ }
             setCallStatus(CallStatus.INACTIVE);
         };
 
