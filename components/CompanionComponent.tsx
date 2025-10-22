@@ -19,6 +19,9 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
     const [speechStatus, setSpeechStatus] = useState(false);
     const [isMuted, setISMuted] = useState(false);
     const callActiveRef = useRef(false);
+    const [micNoticeOpen, setMicNoticeOpen] = useState(false);
+    const [micNoticeText, setMicNoticeText] = useState('');
+    const micNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // const lottieRef = React.useRef<LottieComponentProps>(null);
 
@@ -188,12 +191,28 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
     }, [companionId, subject, topic, userName, userImage, voice]);
 
     const toggleMicrophone = () => {
-        const isMuted = vapi.isMuted();
-        vapi.setMuted(!isMuted);
-        setISMuted(!isMuted);   
+        // Avoid toggling mic when there is no active call; show a friendly popup
+        if (!callActiveRef.current) {
+            if (micNoticeTimerRef.current) clearTimeout(micNoticeTimerRef.current);
+            setMicNoticeText('Start a session to use the microphone');
+            setMicNoticeOpen(true);
+            micNoticeTimerRef.current = setTimeout(() => setMicNoticeOpen(false), 2000);
+            if (process.env.NODE_ENV !== 'production') {
+                console.warn('Mic toggle attempted without an active call.');
+            }
+            return;
+        }
+        try {
+            const current = vapi.isMuted();
+            vapi.setMuted(!current);
+            setISMuted(!current);
+        } catch (err) {
+            console.error('Toggle microphone failed:', err);
+        }
     }
 
     return (
+        <>
         <section className='flex flex-col h-[70vh]'>
             <section className='flex gap-8 max-sm:flex-col'>
                 <div className="companion-section">
@@ -215,7 +234,12 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
                             {userName}
                         </p>
                     </div>
-                    <button className='btn-mic' onClick={toggleMicrophone}>
+                    <button
+                        className={cn('btn-mic', !callStatus || callStatus === CallStatus.INACTIVE ? 'opacity-50 cursor-not-allowed' : '')}
+                        onClick={toggleMicrophone}
+                        disabled={callStatus === CallStatus.CONNECTING}
+                        title={callStatus === CallStatus.INACTIVE ? 'Start a session to use the mic' : undefined}
+                    >
                         <img src={isMuted ? "/icons/mic-off.svg" : "/icons/mic-on.svg"} alt="mic" width={24} height={24} />
                         <p className='max-sm:hidden'>{isMuted ? "Turn on microphone" : "Turn off microphone"}</p>
                     </button>
@@ -246,6 +270,26 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
                 <div className="transcript-fade" />
             </section>
         </section>
+        {micNoticeOpen && (
+            <div
+                className="fixed bottom-4 right-4 z-50 rounded-md bg-gray-900 text-white px-4 py-2 shadow-lg border border-white/10"
+                role="status"
+                aria-live="polite"
+            >
+                <div className="flex items-center gap-2">
+                    <img src="/icons/mic-off.svg" alt="info" width={18} height={18} />
+                    <span className="text-sm">{micNoticeText}</span>
+                    <button
+                        className="ml-2 text-xs opacity-70 hover:opacity-100"
+                        onClick={() => setMicNoticeOpen(false)}
+                        aria-label="Close notification"
+                    >
+                        ✕
+                    </button>
+                </div>
+            </div>
+        )}
+        </>
     )
 }
 
