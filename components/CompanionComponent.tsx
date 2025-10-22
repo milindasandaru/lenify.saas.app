@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react'
-import { cn } from '@/lib/utils';
+import { cn, configureAssistant } from '@/lib/utils';
 import { vapi } from '@/lib/vapi.sdk';
 import { useLottie } from 'lottie-react';
 import soundwaves from '@/constants/soundwaves.json';
-import { set } from 'zod';
-import { connect } from 'http2';
-import { Variable } from 'lucide-react';
+// removed unused imports
 
 enum CallStatus {
     INACTIVE = 'inactive',
@@ -16,7 +14,7 @@ enum CallStatus {
     FINISHED = 'finished',
 }
 
-const CompanionComponent = ({ companionId, name, subject, topic, userName, userImage, voice }: CompanionComponentProps) => {
+const CompanionComponent = ({ companionId, name, subject, topic, userName, userImage, voice, style }: CompanionComponentProps) => {
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
     const [speechStatus, setSpeechStatus] = useState(false);
     const [isMuted, setISMuted] = useState(false);
@@ -52,19 +50,64 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
     const handleCall = async () => {
         setCallStatus(CallStatus.CONNECTING);
 
-        const assistantOverrides = {
-            Variable: {
-                subject, topic
-            },
-            clientMessages: ['transcript'],
-            serverMessage: [],
+        const assistant = configureAssistant(voice, style) as any;
+        const variables = { subject, topic, style } as any;
+
+        if (process.env.NODE_ENV !== 'production') {
+            // Safe debug log (no secrets)
+            console.log('Vapi start payload:', {
+                model: assistant?.model,
+                hasVoice: Boolean((assistant as any)?.voice),
+                variables,
+            });
         }
 
-        // vapi.start()
+        const extractResponseInfo = async (err: any) => {
+            try {
+                const res: Response | undefined = err?.error;
+                let body: any = undefined;
+                if (res && typeof res.text === 'function') {
+                    const txt = await res.text();
+                    try { body = txt ? JSON.parse(txt) : undefined; } catch { body = txt; }
+                }
+                return { status: (res as any)?.status, statusText: (res as any)?.statusText, url: (res as any)?.url, type: (res as any)?.type, body };
+            } catch { return {}; }
+        };
+
+        // Attempt 1: recommended object signature
+        try {
+            await vapi.start({ assistant, variables } as any);
+            return;
+        } catch (e) {
+            console.error('Vapi start failed (assistant+variables):', await extractResponseInfo(e));
+        }
+
+        // Attempt 2: assistant only
+        try {
+            await vapi.start({ assistant } as any);
+            return;
+        } catch (e2) {
+            console.error('Vapi start failed (assistant only):', await extractResponseInfo(e2));
+        }
+
+        // Attempt 3: assistant without voice (if present)
+        try {
+            const { voice: _omitVoice, ...assistantNoVoice } = assistant || {};
+            await vapi.start({ assistant: assistantNoVoice } as any);
+            return;
+        } catch (e3) {
+            console.error('Vapi start failed (assistant without voice):', await extractResponseInfo(e3));
+        }
+
+        setCallStatus(CallStatus.INACTIVE);
     }
 
     const handleDisconnect = async () => {
-
+        try {
+            await vapi.stop();
+        } finally {
+            setCallStatus(CallStatus.FINISHED);
+        }
     }
 
     useEffect(() => {
@@ -74,7 +117,16 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
         const onMessageReceive = (message: string) => { };
         const onSpeechStart = () => setSpeechStatus(true);
         const onSpeechEnd = () => setSpeechStatus(false);
-        const onError = (error: Error) => console.log('Error: ', error);
+        const onError = async (err: any) => {
+            console.error('Vapi error:', err);
+            try {
+                if (err?.error && typeof err.error.json === 'function') {
+                    const details = await err.error.json();
+                    console.error('Vapi error body:', details);
+                }
+            } catch (_) {}
+            setCallStatus(CallStatus.INACTIVE);
+        };
 
         vapi.on('call-start', onCallStart);
         vapi.on('call-end', onCallEnd);
