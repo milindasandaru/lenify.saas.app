@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { cn, configureAssistant, type AssistantWithVoice } from '@/lib/utils';
 import { vapi } from '@/lib/vapi.sdk';
 import { useLottie } from 'lottie-react';
@@ -18,6 +18,7 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
     const [speechStatus, setSpeechStatus] = useState(false);
     const [isMuted, setISMuted] = useState(false);
+    const callActiveRef = useRef(false);
 
     // const lottieRef = React.useRef<LottieComponentProps>(null);
 
@@ -117,9 +118,25 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
     }
 
     const handleDisconnect = async () => {
+        // If we somehow reached here without an active call, avoid stopping to prevent underlying processor errors
+        if (!callActiveRef.current) {
+            setCallStatus(CallStatus.FINISHED);
+            return;
+        }
+        // Small delay to let any audio processors (e.g., Krisp) settle before teardown
+        await new Promise((r) => setTimeout(r, 50));
         try {
             await vapi.stop();
+        } catch (err) {
+            const msg = String((err as Error)?.message || err);
+            // Ignore known Krisp unload timing error to avoid noisy console logs
+            if (msg.includes('WASM_OR_WORKER_NOT_READY') || msg.toLowerCase().includes('krisp')) {
+                console.warn('Ignoring Krisp unload timing error during stop:', msg);
+            } else {
+                console.error('Error while stopping call:', err);
+            }
         } finally {
+            callActiveRef.current = false;
             setCallStatus(CallStatus.FINISHED);
         }
     }
@@ -128,10 +145,12 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
         // Logic to handle companion interaction based on props  
         const onCallStart = () => {
             if (process.env.NODE_ENV !== 'production') console.log('Vapi event: call-start');
+            callActiveRef.current = true;
             setCallStatus(CallStatus.ACTIVE);
         };
         const onCallEnd = (payload?: unknown) => {
             if (process.env.NODE_ENV !== 'production') console.log('Vapi event: call-end', payload);
+            callActiveRef.current = false;
             setCallStatus(CallStatus.FINISHED);
         };
         const onMessageReceive = (message: string) => {
