@@ -3,6 +3,24 @@ import { twMerge } from "tailwind-merge";
 import { subjectsColors, voices } from "@/constants";
 import { CreateAssistantDTO } from "@vapi-ai/web/dist/api";
 
+type Voices = typeof voices;
+type GenderKey = keyof Voices; // 'male' | 'female'
+type StyleKey = keyof Voices[GenderKey]; // 'casual' | 'formal'
+
+export interface ElevenLabsVoiceConfig {
+  provider: "11labs";
+  voiceId: string;
+  stability: number;
+  similarityBoost: number;
+  speed: number;
+  style: number;
+  useSpeakerBoost: boolean;
+}
+
+export type AssistantWithVoice = CreateAssistantDTO & {
+  voice?: ElevenLabsVoiceConfig;
+};
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -11,51 +29,59 @@ export const getSubjectColor = (subject: string) => {
   return subjectsColors[subject as keyof typeof subjectsColors];
 };
 
-export const configureAssistant = (voice: string, style: string) => {
-  const voiceId = voices[voice as keyof typeof voices][
-          style as keyof (typeof voices)[keyof typeof voices]
-          ] || "sarah";
+export const configureAssistant = (
+  subject: string,
+  topic: string,
+  voice: string,
+  style: string
+): AssistantWithVoice => {
+  const gender = voice as GenderKey;
+  const styleKey = style as StyleKey;
+  const voiceGroup = voices[gender];
+  const voiceId = voiceGroup ? voiceGroup[styleKey] : undefined;
 
-  const vapiAssistant: CreateAssistantDTO = {
+  // Build a minimal, broadly-compatible assistant config.
+  const base: CreateAssistantDTO = {
     name: "Companion",
     firstMessage:
-        "Hello, let's start the session. Today we'll be talking about {{topic}}.",
-    transcriber: {
-      provider: "deepgram",
-      model: "nova-3",
-      language: "en",
-    },
-    voice: {
-      provider: "11labs",
-      voiceId: voiceId,
-      stability: 0.4,
-      similarityBoost: 0.8,
-      speed: 1,
-      style: 0.5,
-      useSpeakerBoost: true,
-    },
+      `Hello, let's start the session. Today we'll be talking about ${topic}.`,
     model: {
       provider: "openai",
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content: `You are a highly knowledgeable tutor teaching a real-time voice session with a student. Your goal is to teach the student about the topic and subject.
 
-                    Tutor Guidelines:
-                    Stick to the given topic - {{ topic }} and subject - {{ subject }} and teach the student about it.
-                    Keep the conversation flowing smoothly while maintaining control.
-                    From time to time make sure that the student is following you and understands you.
-                    Break down the topic into smaller parts and teach the student one part at a time.
-                    Keep your style of conversation {{ style }}.
-                    Keep your responses short, like in a real voice conversation.
-                    Do not include any special characters in your responses - this is a voice conversation.
-              `,
+- Stick to the given topic - ${topic} and subject - ${subject} and teach the student about it.
+- Keep the conversation flowing smoothly while maintaining control.
+- Occasionally confirm the student is following along.
+- Break down the topic into smaller parts and teach step by step.
+- Keep your style of conversation ${style}.
+- Keep responses short for a real-time voice conversation.
+- Do not include any special characters in your responses.
+          `,
         },
       ],
     },
-    // clientMessages: [],
-    // serverMessages: [],
   };
-  return vapiAssistant;
+
+  // Only set voice if it looks like a valid ElevenLabs voice id (avoid simple names like 'sarah').
+  if (voiceId && /[A-Za-z0-9]{10,}/.test(String(voiceId))) {
+    const withVoice: AssistantWithVoice = {
+      ...base,
+      voice: {
+        provider: "11labs",
+        voiceId,
+        stability: 0.4,
+        similarityBoost: 0.8,
+        speed: 1,
+        style: 0.5,
+        useSpeakerBoost: true,
+      },
+    };
+    return withVoice;
+  }
+
+  return base as AssistantWithVoice;
 };

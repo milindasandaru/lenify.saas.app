@@ -1,7 +1,6 @@
 import { getComapnion } from '@/lib/actions/companion.action';
 import { currentUser } from '@clerk/nextjs/server';
-import { get } from 'http';
-import { redirect } from 'next/dist/client/components/navigation';
+import { notFound, redirect } from 'next/navigation';
 import React from 'react'
 import CompanionComponent from '@/components/CompanionComponent';
 
@@ -23,14 +22,22 @@ interface CompanionSessionPageProps {
 // searchParams /url?key=value&key1=value1
 
 const Companionsession = async ({ params }: CompanionSessionPageProps) => {
-  const { id } = await params;
-  const companion = await getComapnion(id);
+  const { id } = params;
   const user = await currentUser();
 
-  const { name, subject, topic, duration, bookmarked } = companion;
-
   if (!user) redirect('/sign-in');
-  if (!name) redirect('/companions');
+
+  let companion: (Companion & { voice?: string; style?: string }) | null = null;
+  try {
+    companion = await getComapnion(id);
+  } catch {
+    // If companion cannot be fetched (e.g., empty DB or network), show 404 page
+    return notFound();
+  }
+
+  if (!companion?.name) return notFound();
+
+  const { name, subject, topic, duration } = companion;
 
   return (
     <main>
@@ -54,11 +61,15 @@ const Companionsession = async ({ params }: CompanionSessionPageProps) => {
         </div>
         <div className=" items-start text-2xl max-md:hidden">{duration} min</div>
       </article>
-      <CompanionComponent 
-      {...companion}
-      companionID={id}
-      userName={user?.firstName}
-      userImage={user?.imageUrl}
+      <CompanionComponent
+        companionId={id}
+        name={name}
+        subject={subject}
+        topic={topic}
+        userName={user.firstName || 'You'}
+        userImage={user.imageUrl || '/images/default-avatar.png'}
+        voice={companion.voice || 'female'}
+        style={companion.style || 'casual'}
       />
     </main>
   )
