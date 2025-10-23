@@ -19,6 +19,7 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
     const [speechStatus, setSpeechStatus] = useState(false);
     const [isMuted, setISMuted] = useState(false);
     const callActiveRef = useRef(false);
+    const [messages, setMessages] = useState<SavedMessage[]>([]);
     const [micNoticeOpen, setMicNoticeOpen] = useState(false);
     const [micNoticeText, setMicNoticeText] = useState('');
     const micNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,8 +157,12 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
             callActiveRef.current = false;
             setCallStatus(CallStatus.FINISHED);
         };
-        const onMessageReceive = (message: string) => {
-            if (process.env.NODE_ENV !== 'production') console.log('Vapi message:', message);
+        const onMessageReceive = (message: unknown) => {
+            const m = message as { type?: string; transcriptType?: string; role?: 'user' | 'system' | 'assistant'; transcript?: string };
+            if (m?.type === 'transcript' && m.transcriptType === 'final' && typeof m.transcript === 'string') {
+                const newMessage: SavedMessage = { role: m.role === 'user' ? 'user' : 'assistant', content: m.transcript };
+                setMessages((prev) => [...prev, newMessage]);
+            }
         };
         const onSpeechStart = () => setSpeechStatus(true);
         const onSpeechEnd = () => setSpeechStatus(false);
@@ -214,7 +219,7 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
     return (
         <>
         <section className='flex flex-col h-[70vh]'>
-            <section className='flex gap-8 max-sm:flex-col'>
+            <section className='flex gap-4 max-sm:flex-col'>
                 <div className="companion-section">
                     <div className="companion-avatar">
                         <div className={cn('absolute transition-opacity duration-1000', callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE ? 'opacity-100' : 'opacity-0', callStatus === CallStatus.CONNECTING ? 'opacity-100 animate-pulse' : '')}>
@@ -264,7 +269,22 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
 
             <section className='transcript'>
                 <div className="transcript-message no-scrollbar">
-                    Messages
+                    {messages.map((message: SavedMessage, idx: number) => {
+                        if (message.role === 'assistant') {
+                            const displayName = (name.split(' ')[0] || name).replace(/[^a-zA-Z0-9]/g, '');
+                            return (
+                                <div key={`${idx}-assistant-${String(message.content).slice(0, 30)}`} className="assistant-message max-sm:text-sm">
+                                    <span className="font-semibold">{displayName}:</span> {message.content}
+                                </div>
+                            );
+                        } else {
+                            return (
+                                <div key={`${idx}-user-${String(message.content).slice(0, 30)}`} className="user-message text-primary max-sm:text-sm">
+                                    <span className="font-semibold">{userName}:</span> {message.content}
+                                </div>
+                            );
+                        }
+                    })}
                 </div>
 
                 <div className="transcript-fade" />
