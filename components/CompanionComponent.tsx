@@ -19,6 +19,7 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
     const [speechStatus, setSpeechStatus] = useState(false);
     const [isMuted, setISMuted] = useState(false);
     const callActiveRef = useRef(false);
+    const transcriptRef = useRef<HTMLDivElement | null>(null);
     const [messages, setMessages] = useState<SavedMessage[]>([]);
     const [micNoticeOpen, setMicNoticeOpen] = useState(false);
     const [micNoticeText, setMicNoticeText] = useState('');
@@ -52,10 +53,24 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
         }
     }, [speechStatus, play, stop]);
 
+    // Keep the transcript scrolled to the latest message
+    useEffect(() => {
+        const el = transcriptRef.current;
+        if (!el) return;
+        try {
+            const top = el.scrollHeight;
+            if (typeof el.scrollTo === 'function') {
+                el.scrollTo({ top, behavior: callStatus === CallStatus.ACTIVE ? 'smooth' : 'auto' });
+            } else {
+                el.scrollTop = top;
+            }
+        } catch {}
+    }, [messages.length, callStatus]);
+
     const handleCall = async () => {
         setCallStatus(CallStatus.CONNECTING);
 
-    const assistant: AssistantWithVoice = configureAssistant(subject, topic, voice, style);
+        const assistant: AssistantWithVoice = configureAssistant(subject, topic, voice, style);
 
         if (process.env.NODE_ENV !== 'production') {
             // Safe debug log (no secrets)
@@ -151,6 +166,11 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
             if (process.env.NODE_ENV !== 'production') console.log('Vapi event: call-start');
             callActiveRef.current = true;
             setCallStatus(CallStatus.ACTIVE);
+            try {
+                // Ensure we start unmuted so the assistant can hear the user
+                vapi.setMuted(false);
+                setISMuted(false);
+            } catch {}
         };
         const onCallEnd = (payload?: unknown) => {
             if (process.env.NODE_ENV !== 'production') console.log('Vapi event: call-end', payload);
@@ -218,97 +238,97 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
 
     return (
         <>
-        <section className='flex flex-col h-[70vh]'>
-            <section className='flex gap-4 max-sm:flex-col'>
-                <div className="companion-section">
-                    <div className="companion-avatar">
-                        <div className={cn('absolute transition-opacity duration-1000', callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE ? 'opacity-100' : 'opacity-0', callStatus === CallStatus.CONNECTING ? 'opacity-100 animate-pulse' : '')}>
-                            <img src={`/icons/${subject}.svg`} alt={subject} width={70} height={70} className='max-sm:w-fit' />
+            <section className='flex flex-col h-[70vh]'>
+                <section className='flex gap-4 max-sm:flex-col'>
+                    <div className="companion-section">
+                        <div className="companion-avatar">
+                            <div className={cn('absolute transition-opacity duration-1000', callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE ? 'opacity-100' : 'opacity-0', callStatus === CallStatus.CONNECTING ? 'opacity-100 animate-pulse' : '')}>
+                                <img src={`/icons/${subject}.svg`} alt={subject} width={70} height={70} className='max-sm:w-fit' />
+                            </div>
+                            <div className={cn('absolute transition-opacity duration-1000', callStatus === CallStatus.FINISHED || callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
+                                {View}
+                            </div>
                         </div>
-                        <div className={cn('absolute transition-opacity duration-1000', callStatus === CallStatus.FINISHED || callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
-                            {View}
+                        <p className='font-semibold text-2xl'>{name}</p>
+                    </div>
+
+                    <div className="user-section">
+                        <div className="user-avatar">
+                            <img src={userImage} alt={userName} width={120} height={120} />
+                            <p className='font-semibold text-lg'>
+                                {userName}
+                            </p>
                         </div>
+                        <button
+                            className={cn('btn-mic', !callStatus || callStatus === CallStatus.INACTIVE ? 'opacity-50 cursor-not-allowed' : '')}
+                            onClick={toggleMicrophone}
+                            disabled={callStatus === CallStatus.CONNECTING}
+                            title={callStatus === CallStatus.INACTIVE ? 'Start a session to use the mic' : undefined}
+                        >
+                            <img src={isMuted ? "/icons/mic-off.svg" : "/icons/mic-on.svg"} alt="mic" width={24} height={24} />
+                            <p className='max-sm:hidden'>{isMuted ? "Turn on microphone" : "Turn off microphone"}</p>
+                        </button>
+                        <button
+                            className={cn(
+                                'rounded-lg py-2 cursor-pointer transition-colors w-full text-white',
+                                callStatus === CallStatus.ACTIVE
+                                    ? 'bg-red-600 hover:bg-red-700'
+                                    : callStatus === CallStatus.CONNECTING
+                                        ? 'bg-yellow-600 hover:bg-yellow-700 animate-pulse'
+                                        : 'bg-primary hover:opacity-90'
+                            )}
+                            onClick={callStatus === CallStatus.ACTIVE ? handleDisconnect : handleCall}
+                        >
+                            {callStatus === CallStatus.ACTIVE ? 'End Session'
+                                : callStatus === CallStatus.CONNECTING ? 'Connecting...'
+                                    : 'Start Session'
+                            }
+                        </button>
                     </div>
-                    <p className='font-semibold text-2xl'>{name}</p>
-                </div>
+                </section>
 
-                <div className="user-section">
-                    <div className="user-avatar">
-                        <img src={userImage} alt={userName} width={120} height={120} />
-                        <p className='font-semibold text-lg'>
-                            {userName}
-                        </p>
+                <section className='transcript'>
+                    <div ref={transcriptRef} className="transcript-message no-scrollbar">
+                        {messages.map((message: SavedMessage, idx: number) => {
+                            if (message.role === 'assistant') {
+                                const displayName = (name.split(' ')[0] || name).replace(/[^a-zA-Z0-9]/g, '');
+                                return (
+                                    <div key={`${idx}-assistant-${String(message.content).slice(0, 30)}`} className="assistant-message max-sm:text-sm">
+                                        <span className="font-semibold">{displayName}:</span> {message.content}
+                                    </div>
+                                );
+                            } else {
+                                return (
+                                    <div key={`${idx}-user-${String(message.content).slice(0, 30)}`} className="user-message text-primary max-sm:text-sm">
+                                        <span className="font-semibold">{userName}:</span> {message.content}
+                                    </div>
+                                );
+                            }
+                        })}
                     </div>
-                    <button
-                        className={cn('btn-mic', !callStatus || callStatus === CallStatus.INACTIVE ? 'opacity-50 cursor-not-allowed' : '')}
-                        onClick={toggleMicrophone}
-                        disabled={callStatus === CallStatus.CONNECTING}
-                        title={callStatus === CallStatus.INACTIVE ? 'Start a session to use the mic' : undefined}
-                    >
-                        <img src={isMuted ? "/icons/mic-off.svg" : "/icons/mic-on.svg"} alt="mic" width={24} height={24} />
-                        <p className='max-sm:hidden'>{isMuted ? "Turn on microphone" : "Turn off microphone"}</p>
-                    </button>
-                    <button
-                        className={cn(
-                            'rounded-lg py-2 cursor-pointer transition-colors w-full text-white',
-                            callStatus === CallStatus.ACTIVE
-                                ? 'bg-red-600 hover:bg-red-700'
-                                : callStatus === CallStatus.CONNECTING
-                                ? 'bg-yellow-600 hover:bg-yellow-700 animate-pulse'
-                                : 'bg-primary hover:opacity-90'
-                        )}
-                        onClick={callStatus === CallStatus.ACTIVE ? handleDisconnect : handleCall}
-                    >
-                        {callStatus === CallStatus.ACTIVE ? 'End Session'
-                         : callStatus === CallStatus.CONNECTING ? 'Connecting...' 
-                         : 'Start Session'
-                         }
-                    </button>
-                </div>
-            </section>
 
-            <section className='transcript'>
-                <div className="transcript-message no-scrollbar">
-                    {messages.map((message: SavedMessage, idx: number) => {
-                        if (message.role === 'assistant') {
-                            const displayName = (name.split(' ')[0] || name).replace(/[^a-zA-Z0-9]/g, '');
-                            return (
-                                <div key={`${idx}-assistant-${String(message.content).slice(0, 30)}`} className="assistant-message max-sm:text-sm">
-                                    <span className="font-semibold">{displayName}:</span> {message.content}
-                                </div>
-                            );
-                        } else {
-                            return (
-                                <div key={`${idx}-user-${String(message.content).slice(0, 30)}`} className="user-message text-primary max-sm:text-sm">
-                                    <span className="font-semibold">{userName}:</span> {message.content}
-                                </div>
-                            );
-                        }
-                    })}
-                </div>
-
-                <div className="transcript-fade" />
+                    <div className="transcript-fade" />
+                </section>
             </section>
-        </section>
-        {micNoticeOpen && (
-            <div
-                className="fixed bottom-4 right-4 z-50 rounded-md bg-gray-900 text-white px-4 py-2 shadow-lg border border-white/10"
-                role="status"
-                aria-live="polite"
-            >
-                <div className="flex items-center gap-2">
-                    <img src="/icons/mic-off.svg" alt="info" width={18} height={18} />
-                    <span className="text-sm">{micNoticeText}</span>
-                    <button
-                        className="ml-2 text-xs opacity-70 hover:opacity-100"
-                        onClick={() => setMicNoticeOpen(false)}
-                        aria-label="Close notification"
-                    >
-                        ✕
-                    </button>
+            {micNoticeOpen && (
+                <div
+                    className="fixed bottom-4 right-4 z-50 rounded-md bg-gray-900 text-white px-4 py-2 shadow-lg border border-white/10"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <div className="flex items-center gap-2">
+                        <img src="/icons/mic-off.svg" alt="info" width={18} height={18} />
+                        <span className="text-sm">{micNoticeText}</span>
+                        <button
+                            className="ml-2 text-xs opacity-70 hover:opacity-100"
+                            onClick={() => setMicNoticeOpen(false)}
+                            aria-label="Close notification"
+                        >
+                            ✕
+                        </button>
+                    </div>
                 </div>
-            </div>
-        )}
+            )}
         </>
     )
 }

@@ -38,7 +38,34 @@ export const configureAssistant = (
   const gender = voice as GenderKey;
   const styleKey = style as StyleKey;
   const voiceGroup = voices[gender];
-  const voiceId = voiceGroup ? voiceGroup[styleKey] : undefined;
+
+  // Helper to choose a valid ElevenLabs voiceId for the selected gender/style.
+  const selectValidVoiceId = (): { id?: string; usedStyle?: StyleKey } => {
+    if (!voiceGroup) return {};
+    const candidate = voiceGroup[styleKey];
+    if (candidate && /[A-Za-z0-9]{10,}/.test(String(candidate))) {
+      return { id: candidate, usedStyle: styleKey };
+    }
+    // Fallback within the same gender: pick the first valid style id
+    const entries = Object.entries(voiceGroup) as Array<[StyleKey, string]>;
+    const found = entries.find(([, val]) => /[A-Za-z0-9]{10,}/.test(String(val)));
+    if (found) {
+      const [fallbackStyle, fallbackId] = found;
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          `configureAssistant: requested voice '${gender}/${styleKey}' is not a valid ElevenLabs voiceId; ` +
+          `falling back to '${gender}/${fallbackStyle}'.`
+        );
+      }
+      return { id: fallbackId, usedStyle: fallbackStyle };
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`configureAssistant: no valid ElevenLabs voiceId found for gender '${gender}'. Voice will be omitted.`);
+    }
+    return {};
+  };
+
+  const { id: voiceId } = selectValidVoiceId();
 
   // Build a minimal, broadly-compatible assistant config.
   const base: CreateAssistantDTO = {
@@ -64,6 +91,12 @@ export const configureAssistant = (
         },
       ],
     },
+    // Ensure speech-to-text is available so the assistant can hear the user.
+    // Uses project-level provider credentials configured in the Vapi dashboard.
+    transcriber:
+      (process.env.NEXT_PUBLIC_VAPI_TRANSCRIBER || 'deepgram') === 'openai'
+        ? { provider: 'openai', model: 'gpt-4o-mini-transcribe' }
+        : { provider: 'deepgram' },
   };
 
   // Only set voice if it looks like a valid ElevenLabs voice id (avoid simple names like 'sarah').
