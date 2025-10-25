@@ -3,6 +3,18 @@
 import {auth} from "@clerk/nextjs/server";
 import { createSupabaseClient } from "@/lib/supabase";
 
+// Minimal companion shape for Supabase rows (extend as your schema evolves)
+type DbCompanion = {
+    id: string;
+    name: string;
+    subject: string;
+    topic: string;
+    voice?: string;
+    style?: string;
+    duration?: number;
+    [key: string]: unknown;
+}
+
 export const createCompanion = async (formData: CreateCompanion) => {
     const {userId: author} = await auth();
     const supabase = createSupabaseClient();
@@ -17,7 +29,7 @@ export const createCompanion = async (formData: CreateCompanion) => {
         throw new Error(error?.message || 'Failed to create companion');
     }
 
-    return data[0];
+    return data;
 }
 
 export const getAllCompanions = async ({ limit = 10, page = 1, subject, topic }: GetAllCompanions) => {
@@ -25,12 +37,15 @@ export const getAllCompanions = async ({ limit = 10, page = 1, subject, topic }:
 
     let query = supabase.from('companions').select();
 
-    if (subject && topic ) {
-        query = query.ilike('subject', `%${subject}%`).or(`topic.ilike.%${topic}%, name.ilike.%${topic}%`);
-    } else if (subject) {
-        query = query.ilike('subject', `%${subject}%`);
-    } else if (topic) {
-        query = query.ilike('topic', `%${topic}%`).or(`name.ilike.%${topic}%`);
+    const subjectTerm = Array.isArray(subject) ? subject[0] : subject;
+    const topicTerm = Array.isArray(topic) ? topic[0] : topic;
+
+    if (subjectTerm) {
+        query = query.ilike('subject', `%${subjectTerm}%`);
+    }
+    if (topicTerm) {
+        // Search in topic or name when topicTerm provided
+        query = query.or(`topic.ilike.%${topicTerm}%,name.ilike.%${topicTerm}%`);
     }
     query = query.range((page - 1) * limit, page * limit - 1).order('created_at', { ascending: false });
 
@@ -57,4 +72,52 @@ export const getComapnion = async (id: string) => {
     }
 
     return data;
+}
+
+export const addToSessionHistory = async (companionId: string) => {
+    const { userId } = await auth();
+    if (!userId) throw new Error('Unauthorized');
+    const supabase = createSupabaseClient();
+    const { data, error } = await supabase
+        .from('session_history')
+        .insert({
+            companion_id: companionId,
+            user_id: userId,
+        })
+        .select()
+        .single();
+
+    if (error) throw new Error(error.message);
+
+    return data;
+}
+
+export const getRecentSessions = async (limit = 10) => {
+    const supabase = createSupabaseClient();
+    const { data, error } = await supabase
+        .from('session_history')
+        .select('companion:companion_id(*)')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) throw new Error(error.message);
+
+    const rows = (data ?? []) as unknown as Array<{ companion: DbCompanion | null }>
+    return rows.map((r) => r.companion).filter(Boolean);
+}
+
+
+export const getUserSessions = async (userId: string, limit = 10 ) => {
+    const supabase = createSupabaseClient();
+    const { data, error } = await supabase
+        .from('session_history')
+        .select('companion:companion_id(*)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) throw new Error(error.message);
+
+    const rows = (data ?? []) as unknown as Array<{ companion: DbCompanion | null }>
+    return rows.map((r) => r.companion).filter(Boolean);
 }
