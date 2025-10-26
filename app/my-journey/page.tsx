@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/accordion"
 import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { getUserCompanions, getUserSessions } from '@/lib/actions/companion.action';
+import { getUserCompanions, getUserSessions, getUserBookmarks } from '@/lib/actions/companion.action';
 import CompanionList from '@/components/companionList';
 
 const Profile = async () => {
@@ -15,8 +15,11 @@ const Profile = async () => {
 
   if (!user) redirect('/sign-in');
 
-  const sessionHistory = await getUserSessions(user.id);
-  const companions = await getUserCompanions(user.id);
+  const [sessionHistory, companions, bookmarks] = await Promise.all([
+    getUserSessions(user.id),
+    getUserCompanions(user.id),
+    getUserBookmarks(user.id),
+  ]);
 
   return (
     <main className='lg:w-3/4'>
@@ -58,6 +61,12 @@ const Profile = async () => {
           <AccordionTrigger className='text-xl font-semibold'>Recent Sessions</AccordionTrigger>
           <AccordionContent>
             <CompanionList title="Recent Sessions" companions={sessionHistory} />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value='bookmarked'>
+          <AccordionTrigger className='text-xl font-semibold'>Bookmarked {bookmarks?.length ? `(${bookmarks.length})` : ''}</AccordionTrigger>
+          <AccordionContent>
+            <CompanionList title="Bookmarked" companions={bookmarks} />
           </AccordionContent>
         </AccordionItem>
         <AccordionItem value='companions'>

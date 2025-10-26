@@ -8,8 +8,8 @@ import {
     TableHeader,
     TableRow
 } from '@/components/ui/table'
-import Link from 'next/dist/client/link';
-import { METHODS } from 'http';
+import Link from 'next/link';
+import BookmarkButton from '@/components/ui/BookmarkButton';
 
 interface CompanionCardProps {
     title: string;
@@ -28,6 +28,9 @@ const companionList = ({ title, companions, className }: CompanionCardProps) => 
                         <TableHead className='text-lg w-2/3'>Lessons</TableHead>
                         <TableHead className='text-lg'>Subject</TableHead>
                         <TableHead className='text-lg'>Duration</TableHead>
+                        <TableHead className='text-lg w-[60px] text-center'>
+                            <span className='sr-only'>Bookmark</span>
+                        </TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -56,6 +59,9 @@ const companionList = ({ title, companions, className }: CompanionCardProps) => 
                             </TableCell>
                             <TableCell className='text-sm text-gray-500'>
                                 {duration} min
+                            </TableCell>
+                            <TableCell className='text-center'>
+                                <BookmarkButton companionId={id} />
                             </TableCell>
                         </TableRow>
                     )) : null}

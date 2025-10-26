@@ -3,6 +3,8 @@ import { currentUser } from '@clerk/nextjs/server';
 import { notFound, redirect } from 'next/navigation';
 import React from 'react'
 import CompanionComponent from '@/components/CompanionComponent';
+import BookmarkButton from '@/components/ui/BookmarkButton';
+import { isBookmarked } from '@/lib/actions/companion.action';
 
 
 type Companion = {
@@ -38,6 +40,11 @@ const Companionsession = async ({ params }: CompanionSessionPageProps) => {
   if (!companion?.name) return notFound();
 
   const { name, subject, topic, duration } = companion;
+  // compute initial bookmarked state to avoid client flash
+  let initialBookmarked = false;
+  try {
+    initialBookmarked = await isBookmarked(id);
+  } catch {}
 
   return (
     <main>
@@ -55,6 +62,7 @@ const Companionsession = async ({ params }: CompanionSessionPageProps) => {
               <div className="subject-badge max-sm:hidden">
                 {subject}
               </div>
+              <BookmarkButton companionId={id} initialBookmarked={initialBookmarked} />
             </div>
             <p className='text-lg text-gray-700'>{topic}</p>
           </div>

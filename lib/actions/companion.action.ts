@@ -165,3 +165,52 @@ export const newCompanionPermissions = async () => {
   const companionCount = count ?? 0;
   return companionCount < limit;
 };
+
+// Bookmarks helpers
+export const getUserBookmarks = async (userId: string, limit = 50) => {
+    const supabase = createSupabaseServerClient();
+    try {
+        const { data, error } = await supabase
+            .from('bookmarks')
+            .select('companion:companion_id(*)')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (error) throw error as unknown as Error & { code?: string };
+
+        const rows = (data ?? []) as unknown as Array<{ companion: DbCompanion | null }>
+        return rows.map((r) => r.companion).filter(Boolean);
+    } catch (e: any) {
+        const msg = String(e?.message || '');
+        const code = String(e?.code || '');
+        // Gracefully handle missing table so the page can render without crashing
+        if (code === '42P01' || /relation .*bookmarks.* does not exist/i.test(msg) || /schema cache/i.test(msg)) {
+            return [];
+        }
+        throw new Error(msg || 'Failed to load bookmarks');
+    }
+}
+
+export const isBookmarked = async (companionId: string) => {
+    const { userId } = await auth();
+    if (!userId) return false;
+    const supabase = createSupabaseServerClient();
+    try {
+        const { data, error } = await supabase
+            .from('bookmarks')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('companion_id', companionId)
+            .maybeSingle();
+        if (error) throw error as unknown as Error & { code?: string };
+        return !!data;
+    } catch (e: any) {
+        const msg = String(e?.message || '');
+        const code = String(e?.code || '');
+        if (code === '42P01' || /relation .*bookmarks.* does not exist/i.test(msg) || /schema cache/i.test(msg)) {
+            return false;
+        }
+        throw new Error(msg || 'Failed to check bookmark');
+    }
+}
