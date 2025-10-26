@@ -1,6 +1,6 @@
-'use server';
+"use server";
 
-import {auth} from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { createSupabaseClient, createSupabaseServerClient } from "@/lib/supabase";
 
 // Minimal companion shape for Supabase rows (extend as your schema evolves)
@@ -135,3 +135,33 @@ export const getUserCompanions = async (userId: string ) => {
 
     return data;
 }
+
+export const newCompanionPermissions = async () => {
+  const { userId } = await auth();
+  if (!userId) return false;
+
+  // Determine plan from Clerk user metadata, default to 'free'
+  const user = await currentUser();
+    const rawPlan = ((user?.publicMetadata as any)?.plan || (user?.privateMetadata as any)?.plan || "basic") as string;
+    const plan = String(rawPlan).toLowerCase(); // expected: 'basic' | 'core' | 'pro'
+
+    if (plan === "pro") return true; // unlimited
+
+    // Map plan to limits; allow overriding via metadata.companion_limit
+    const metaLimit = Number((user?.publicMetadata as any)?.companion_limit ?? (user?.privateMetadata as any)?.companion_limit);
+    // Support legacy synonyms: 'plus' => 'core', 'free' => 'basic'
+    const normalized = plan === "plus" ? "core" : plan === "free" ? "basic" : plan;
+    const defaultLimit = normalized === "core" ? 10 : 3; // core ~ mid tier, basic ~ entry tier
+    const limit = Number.isFinite(metaLimit) && metaLimit > 0 ? metaLimit : defaultLimit;
+
+  const supabase = createSupabaseClient();
+  const { count, error } = await supabase
+    .from("companions")
+    .select("*", { count: "exact", head: true })
+    .eq("author", userId);
+
+  if (error) throw new Error(error.message);
+
+  const companionCount = count ?? 0;
+  return companionCount < limit;
+};
