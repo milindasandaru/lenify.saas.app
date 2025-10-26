@@ -123,3 +123,15 @@ export const getUserSessions = async (userId: string, limit = 10 ) => {
     const rows = (data ?? []) as unknown as Array<{ companion: DbCompanion | null }>
     return rows.map((r) => r.companion).filter(Boolean);
 }
+
+export const getUserCompanions = async (userId: string ) => {
+    const supabase = createSupabaseClient();
+    const { data, error } = await supabase
+        .from('companions')
+        .select()
+        .eq('author', userId)
+
+    if (error) throw new Error(error.message);
+
+    return data;
+}
