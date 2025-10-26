@@ -20,7 +20,7 @@ interface CompanionCardProps {
 const companionList = ({ title, companions, className }: CompanionCardProps) => {
     return (
         <article className={`p-4 border border-black rounded-3xl shadow-md w-full max-sm:px-0 max-sm:rounded-none max-sm:border-0 ${className}`}>
-            <h2 className='font-bold text-2xl'>Recent Sessions</h2>
+            <h2 className='font-bold text-2xl'>{title}</h2>
 
             <Table className='mt-4'>
                 <TableHeader className='bg-gray-200'>
