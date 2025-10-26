@@ -1,6 +1,6 @@
 import React from 'react'
-import bookmark from '../public/icons/bookmark.svg'
 import Link from 'next/dist/client/link';
+import BookmarkButton from '@/components/ui/BookmarkButton';
 
 interface CompanionCardProps {
     id: string;
@@ -17,9 +17,7 @@ const CompanionCard = ({ id, name, topic, subject, duration, color }:
         <article className='companion-card' style={{ backgroundColor: color }}>
             <div className="flex justify-between items-center">
                 <div className="subject-badge">{subject}</div>
-                <button className="companion-bookmark">
-                    <img src="/icons/bookmark.svg" alt="bookmark" width={18} height={18} />
-                </button>
+                <BookmarkButton companionId={id} />
             </div>
 
             <h2 className='text-2xl font-bold'>{name}</h2>
