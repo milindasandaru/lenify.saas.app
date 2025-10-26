@@ -5,6 +5,7 @@ import { cn, configureAssistant, type AssistantWithVoice } from '@/lib/utils';
 import { vapi } from '@/lib/vapi.sdk';
 import { useLottie } from 'lottie-react';
 import soundwaves from '@/constants/soundwaves.json';
+import { addToSessionHistory } from '@/lib/actions/companion.action';
 // removed unused imports
 
 enum CallStatus {
@@ -176,6 +177,8 @@ const CompanionComponent = ({ companionId, name, subject, topic, userName, userI
             if (process.env.NODE_ENV !== 'production') console.log('Vapi event: call-end', payload);
             callActiveRef.current = false;
             setCallStatus(CallStatus.FINISHED);
+
+            addToSessionHistory(companionId);
         };
         const onMessageReceive = (message: unknown) => {
             const m = message as { type?: string; transcriptType?: string; role?: 'user' | 'system' | 'assistant'; transcript?: string };

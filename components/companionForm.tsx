@@ -42,6 +42,9 @@ const CompanionForm = () => {
         },
     })
 
+    // Keep a local text state to avoid leading zeros like "010"
+    const [durationText, setDurationText] = React.useState("15");
+
     const router = useRouter();
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -166,10 +169,26 @@ const CompanionForm = () => {
                             <FormLabel>Estimated session duration in minutes</FormLabel>
                             <FormControl>
                                 <Input
-                                    type='number'
+                                    type='text'
+                                    inputMode='numeric'
+                                    pattern='[0-9]*'
                                     placeholder='15'
-                                    value={field.value}
-                                    onChange={e => field.onChange(Number(e.target.value))}
+                                    value={durationText}
+                                    onChange={e => {
+                                        const raw = e.target.value.replace(/[^0-9]/g, "");
+                                        // strip leading zeros while allowing empty
+                                        const normalized = raw.replace(/^0+(?=\d)/, "");
+                                        setDurationText(normalized);
+                                        if (normalized === "") return; // let user clear
+                                        const num = Number(normalized);
+                                        field.onChange(num);
+                                    }}
+                                    onBlur={() => {
+                                        if (durationText === "") {
+                                            setDurationText(String(field.value || 1));
+                                            field.onChange(field.value || 1);
+                                        }
+                                    }}
                                     className='input'
                                 />
                             </FormControl>

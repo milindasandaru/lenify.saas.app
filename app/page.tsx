@@ -5,7 +5,7 @@ import React from 'react'
 import { getAllCompanions, getRecentSessions } from '@/lib/actions/companion.action'
 
 const Page = async () => {
-  const companions = await getAllCompanions({ limit: 6 });
+  const companions = await getAllCompanions({ limit: 3 });
   const recentSessionsCompanions = await getRecentSessions(10);
 
   return (

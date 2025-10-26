@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase";
 
 // Seed 5-6 example companions. Only intended for local/dev use.
 // POST /api/dev/seed
@@ -12,8 +12,8 @@ export async function POST() {
 		);
 	}
 
-	const { userId } = await auth();
-	const supabase = createSupabaseClient();
+		const { userId } = await auth();
+		const supabase = createSupabaseServerClient();
 
 	const companions = [
 		{

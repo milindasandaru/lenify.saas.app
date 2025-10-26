@@ -1,7 +1,7 @@
 'use server';
 
 import {auth} from "@clerk/nextjs/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, createSupabaseServerClient } from "@/lib/supabase";
 
 // Minimal companion shape for Supabase rows (extend as your schema evolves)
 type DbCompanion = {
@@ -17,7 +17,8 @@ type DbCompanion = {
 
 export const createCompanion = async (formData: CreateCompanion) => {
     const {userId: author} = await auth();
-    const supabase = createSupabaseClient();
+    // Use server client to satisfy RLS (service role) while still stamping the author.
+    const supabase = createSupabaseServerClient();
     
 
     const {data, error} = await supabase.from('companions').insert({
@@ -77,7 +78,8 @@ export const getComapnion = async (id: string) => {
 export const addToSessionHistory = async (companionId: string) => {
     const { userId } = await auth();
     if (!userId) throw new Error('Unauthorized');
-    const supabase = createSupabaseClient();
+    // Use server client for inserts guarded by RLS
+    const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
         .from('session_history')
         .insert({

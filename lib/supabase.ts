@@ -22,21 +22,21 @@ export const createSupabaseClient = () => {
             autoRefreshToken: false,
             detectSessionInUrl: false,
         },
-        // global: {
-        //   headers: clerkToken ? { Authorization: `Bearer ${clerkToken}` } : undefined,
-        // },
     });
 };
 
-// Server-only admin client for tasks like seeding. Requires SUPABASE_SERVICE_ROLE_KEY.
-export const createSupabaseAdminClient = () => {
+// Server-only client using the Service Role key to bypass RLS for trusted server actions/routes.
+// NEVER expose the service role key to the client. Keep it only in server env (.env.local / hosting secrets).
+export const createSupabaseServerClient = () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
     if (!url || !serviceKey) {
         throw new Error(
-            "Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL. Add them to .env.local to run admin tasks."
+            "Supabase server envs missing. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in server env."
         );
     }
+
     return createClient(url, serviceKey, {
         auth: {
             persistSession: false,
